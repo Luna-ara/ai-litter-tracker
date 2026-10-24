@@ -1,54 +1,65 @@
-# CivicBounty configuration repair
+# CivicBounty — team repository
 
-## Reproduced failure
+Complete source export for local development with React, Vinext, Cloudflare D1 and Drizzle. Use Node.js 24 and npm. Keep the folder structure intact.
 
-Using the uploaded tsconfig against the supplied backend produced these errors:
-
-- app/api/hotspots/route.ts: parsed title, neighborhood, bountyAmount, and beforeImageUrl were inferred as optional and could not be inserted into the required database model.
-- app/api/submissions/route.ts: completionPercentage and reason were inferred as optional and could not be passed to the submission repository.
-
-The uploaded `strict: false` disables strict null checking. With this project's Zod 3 schemas, that changes the inferred required-field types. Restoring `strict: true` fixes the errors without weakening the database types or casting away validation.
-
-## Changes in this download
-
-- Restored strict TypeScript checking and excluded generated framework/database files and examples.
-- Standardized the local download on npm and the supplied package-lock.json. Dependencies are unchanged; manifest and lockfile requirements match.
-- Replaced the Bash-only install:ci command with npm ci, which runs on Windows too.
-- Added typecheck, test, and db:migrate:local commands.
-- Included the complete project source, including vite.config.ts, worker/, scripts/, app/, lib/, and database migrations. The earlier backend-only archive did not contain all files required by the package scripts.
-- Added a .dev.vars.example with variable names, without any secret values.
-
-## Run locally
-
-Use Node.js 22.13 or newer (Node 24 LTS is suitable). Open a terminal in this extracted directory:
+## Quick start
 
 ```sh
 npm ci
-npm run typecheck
-npm test
-npm run build
-npm run db:migrate:local
+npm run setup
 npm run dev
 ```
 
-Run db:migrate:local once for a fresh local database, after building. The generated SQL creates the initial tables; do not replay it against a database where this migration has already been applied.
+Open the localhost URL printed in the terminal. `setup` creates `.dev.vars` from the template only if absent and applies both tracked database migrations. It is safe to repeat: applied migrations are recorded. Each teammate has their own local database. This export does not include previous users, data, keys, or uploaded images.
 
-Use the local URL printed by the dev server. This project uses Vinext to run its Next.js-compatible routes with Cloudflare D1 bindings; replacing these scripts with next dev/next start alone will not supply the cloudflare:workers runtime.
+For API development, open `/signin-with-chatgpt?return_to=/` on that same localhost URL. Local development uses `local_seedy`; the example config grants this identity government permissions. This is local test authentication, not production authentication. `npm start` is a local built-worker preview, not a public deployment, and does not provide the Vite development sign-in helper.
 
-For local API authentication, visit `/signin-with-chatgpt?return_to=/` at the local preview URL. The portable development helper signs in as local_seedy. Production sign-in remains handled by Sites.
+## What is included
 
-## Database and secrets
+- Existing citizen and government demo UI, styling, assets and interactions.
+- Hotspot and submission API routes and database schema.
+- Updated citizen intake: JSON or multipart text fields, before/after image URLs or bounded JPEG data URLs, server-side GPS/geofence validation, and Pending submission persistence.
+- Two database migrations, backend tests, runtime helpers, and CI workflow.
 
-The uploaded DATABASE_URL points to a local SQLite file, but db/index.ts uses env.DB from Cloudflare Workers. DATABASE_URL is not read by this backend. Local D1 state lives under .wrangler/state and uses the DB binding declared in .openai/hosting.json. Drizzle's sqlite dialect is correct for D1; drizzle.config.ts does not itself provision a database.
+The home-page UI still uses simulated camera capture, location, verification and payments; it is not wired to the real submission API. No standalone working camera component was present in this recovered source. Submission intake does not call AI; an asynchronous verification worker and real payments are not included. The vision helper remains available for future integration. See SUBMISSION_UPDATE.md for the current API contract; it supersedes older synchronous-intake descriptions in docs/BOUNTY_BACKEND.md.
 
-To enable real image analysis, copy .dev.vars.example to .dev.vars and configure OPENAI_API_KEY, OPENAI_VISION_MODEL, GOVERNMENT_USER_IDS, and BOUNTY_IMAGE_ORIGINS. The AI model must support images and structured JSON responses. Do not put a secret in NEXT_PUBLIC_* or commit .dev.vars.
+## Configuration
 
-A new OpenAI key was securely saved in the assistant's working project at /workspace/sites/civicbounty-ai/.dev.vars. This download intentionally does not contain it, and saving it there does not configure your own machine or the deployed Site.
+Edit your local `.dev.vars`. Never commit it. `BOUNTY_IMAGE_ORIGINS` is a comma-separated list of permitted HTTPS image origins. Set it before using remote evidence URLs. `GOVERNMENT_USER_IDS` controls API government roles. OpenAI settings are optional for the demo and current Pending intake; keys are deliberately absent. Configure credentials separately only when implementing real verification.
 
-The browser UI remains a simulated demo; the backend API routes enforce the per-item bounty rule. A live client integration needs to send real before/after image URLs to /api/submissions.
+## Checks
 
-## Verification scope
+```sh
+npm run typecheck
+npm test
+npm run build
+```
 
-The uploaded configuration errors were reproduced using the existing backend source. The corrected configuration is checked with TypeScript, the backend tests, and a production build using the workspace's installed dependencies. Fresh npm installation on your machine and real AI-provider calls are not verified by those checks.
+GitHub Actions runs these on pushes and pull requests. Tests use a temporary in-memory SQLite database and mocked external services, without API keys. Build output is generated under dist and must not be committed.
 
-If another error remains on your machine, provide the exact terminal error and the command that produced it. Do not send .env or .dev.vars contents.
+## Put this project on GitHub
+
+Extract the ZIP first. Upload the contents of this directory, not the ZIP, with package.json at the repository root. Preserve .openai/hosting.json and .github/workflows/ci.yml. Git is preferred over dragging individual files because it preserves folders and dotfiles.
+
+For a new empty GitHub repository, run in this folder, replacing YOUR-REPO-URL:
+
+```sh
+git init
+git add .
+git commit -m "Add complete CivicBounty project"
+git branch -M main
+git remote add origin YOUR-REPO-URL
+git push -u origin main
+```
+
+For an existing nonempty repository, clone it first, copy this export into a new branch, review changes and open a pull request. Do not force-push over teammates' work.
+
+Invite your teammates through the repository's collaborator settings. They can clone the repository and follow Quick start. See CONTRIBUTING.md.
+
+## Hosting boundary
+
+GitHub stores source and runs checks; GitHub Pages cannot run this backend. Public hosting needs a Cloudflare-compatible runtime, a real D1 binding, migrations, environment configuration, and trusted authentication. The existing header-based authentication expects the Sites trusted ingress; do not expose it directly on another public host without replacing or securing that boundary. This export does not deploy anything or share a live database.
+
+## Verification of this export
+
+TypeScript, backend tests, production build, and local migrations are checked using dependencies already installed in the workspace. Fresh npm installation on an external teammate machine and public deployment have not been verified here.
