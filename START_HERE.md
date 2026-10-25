@@ -1,5 +1,8 @@
 # START HERE: CivicBounty team handoff
 
+> **Demo day (Sun Oct 25):** the app is complete and verified on `main`. **Rohan → follow
+> [`docs/rohan-demo-day.md`](docs/rohan-demo-day.md).** Everyone else → [`docs/DEMO.md`](docs/DEMO.md).
+
 **Humans:** open your AI assistant **in the repo root** and paste your kickoff line from §1.
 That's it. The assistant reads this file and takes it from there.
 

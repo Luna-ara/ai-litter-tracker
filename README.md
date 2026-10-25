@@ -1,12 +1,13 @@
 # CivicBounty
 
+> **Demo day (Sun Oct 25):** the app is complete and verified on `main`. **Rohan → follow
+> [`docs/rohan-demo-day.md`](docs/rohan-demo-day.md).** Everyone else → [`docs/DEMO.md`](docs/DEMO.md).
+
 Paid, verifiable community cleanup. Cities post funded **bounties** on litter hotspots, and citizens
 clean them up, prove it with before/after photos and get paid through Stripe.
 
-> **Status (Sat Oct 24, 2026):** the foundation is in place: real login, database, uploads, sandbox
-> payments and a placeholder for every page. The team is building the citizen and government apps
-> tonight for a **9:00 AM demo on Sun Oct 25**. (The earlier upload, an OpenAI Sites export, was
-> missing its source and has been replaced.)
+> **Status:** feature-complete for the 9:00 AM demo on Sun Oct 25: citizen app, government app,
+> real login, in-browser camera, and Stripe sandbox funding and payouts.
 
 ## Start here
 
