@@ -1,8 +1,0 @@
-# Local-only Worker configuration. Copy this file to .dev.vars.
-# Keep .dev.vars out of source control and downloads.
-OPENAI_API_KEY=
-OPENAI_VISION_MODEL=
-# Portable localhost preview signs in as local_seedy. Use real site IDs in production.
-GOVERNMENT_USER_IDS=local_seedy
-# Exact HTTPS origins of your uploaded before/after photos, comma-separated.
-BOUNTY_IMAGE_ORIGINS=

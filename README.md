@@ -1,54 +1,50 @@
-# CivicBounty configuration repair
+# CivicBounty
 
-## Reproduced failure
+Paid, verifiable community cleanup. Cities post funded **bounties** on litter hotspots, and citizens
+clean them up, prove it with before/after photos and get paid through Stripe.
 
-Using the uploaded tsconfig against the supplied backend produced these errors:
+> **Status (Sat Oct 24, 2026):** fresh start. This repo is currently just the plan. The app is being
+> built tonight for a **9:00 AM demo on Sun Oct 25**. The earlier upload (an OpenAI Sites export)
+> was missing its source folders and has been replaced.
 
-- app/api/hotspots/route.ts: parsed title, neighborhood, bountyAmount, and beforeImageUrl were inferred as optional and could not be inserted into the required database model.
-- app/api/submissions/route.ts: completionPercentage and reason were inferred as optional and could not be passed to the submission repository.
+## Start here
 
-The uploaded `strict: false` disables strict null checking. With this project's Zod 3 schemas, that changes the inferred required-field types. Restoring `strict: true` fixes the errors without weakening the database types or casting away validation.
+| If you are… | Read |
+| --- | --- |
+| Anyone on the team | [`docs/ROADMAP.md`](docs/ROADMAP.md): the plan, timeline, gates, git workflow |
+| Writing code | [`docs/CONTRACTS.md`](docs/CONTRACTS.md): schema, APIs, shared helpers, **who owns which files** |
+| Carter | [`docs/lanes/carter-foundation.md`](docs/lanes/carter-foundation.md): foundation, login, camera |
+| Rohan | [`docs/lanes/rohan-citizen.md`](docs/lanes/rohan-citizen.md): citizen app |
+| Luna | [`docs/lanes/luna-gov-payments.md`](docs/lanes/luna-gov-payments.md): government app + payments |
+| Presenting | [`docs/DEMO.md`](docs/DEMO.md): 3-minute script, Q&A prep, morning checklist |
+| An AI assistant | [`AGENTS.md`](AGENTS.md) |
 
-## Changes in this download
+### Using an LLM to build your lane
 
-- Restored strict TypeScript checking and excluded generated framework/database files and examples.
-- Standardized the local download on npm and the supplied package-lock.json. Dependencies are unchanged; manifest and lockfile requirements match.
-- Replaced the Bash-only install:ci command with npm ci, which runs on Windows too.
-- Added typecheck, test, and db:migrate:local commands.
-- Included the complete project source, including vite.config.ts, worker/, scripts/, app/, lib/, and database migrations. The earlier backend-only archive did not contain all files required by the package scripts.
-- Added a .dev.vars.example with variable names, without any secret values.
+Give your assistant **`AGENTS.md` + `docs/CONTRACTS.md` + your lane brief**, then paste the
+prompt from the bottom of your lane brief along with the task you're working on. Claude Code and
+Cursor pick up `AGENTS.md`/`CLAUDE.md` automatically.
 
-## Run locally
+## Stack
 
-Use Node.js 22.13 or newer (Node 24 LTS is suitable). Open a terminal in this extracted directory:
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4 + shadcn/ui · SQLite via Drizzle
+(libSQL) · bcrypt + JWT cookie auth · Stripe (test mode) Checkout + Connect
 
-```sh
+## Running it (after Phase 0 lands)
+
+```bash
+nvm use                      # Node 22
 npm ci
-npm run typecheck
-npm test
-npm run build
-npm run db:migrate:local
-npm run dev
+cp .env.example .env.local   # then fill in AUTH_SECRET (Stripe keys optional)
+npm run db:reset             # creates local.db with demo data
+npm run dev                  # http://localhost:3000
 ```
 
-Run db:migrate:local once for a fresh local database, after building. The generated SQL creates the initial tables; do not replay it against a database where this migration has already been applied.
+Demo accounts (password `demo1234`): `city@civicbounty.test` (government),
+`alex@civicbounty.test` (citizen). In development, `/dev/login-as` logs you in with one click.
 
-Use the local URL printed by the dev server. This project uses Vinext to run its Next.js-compatible routes with Cloudflare D1 bindings; replacing these scripts with next dev/next start alone will not supply the cloudflare:workers runtime.
+## Team rules in one breath
 
-For local API authentication, visit `/signin-with-chatgpt?return_to=/` at the local preview URL. The portable development helper signs in as local_seedy. Production sign-in remains handled by Sites.
-
-## Database and secrets
-
-The uploaded DATABASE_URL points to a local SQLite file, but db/index.ts uses env.DB from Cloudflare Workers. DATABASE_URL is not read by this backend. Local D1 state lives under .wrangler/state and uses the DB binding declared in .openai/hosting.json. Drizzle's sqlite dialect is correct for D1; drizzle.config.ts does not itself provision a database.
-
-To enable real image analysis, copy .dev.vars.example to .dev.vars and configure OPENAI_API_KEY, OPENAI_VISION_MODEL, GOVERNMENT_USER_IDS, and BOUNTY_IMAGE_ORIGINS. The AI model must support images and structured JSON responses. Do not put a secret in NEXT_PUBLIC_* or commit .dev.vars.
-
-A new OpenAI key was securely saved in the assistant's working project at /workspace/sites/civicbounty-ai/.dev.vars. This download intentionally does not contain it, and saving it there does not configure your own machine or the deployed Site.
-
-The browser UI remains a simulated demo; the backend API routes enforce the per-item bounty rule. A live client integration needs to send real before/after image URLs to /api/submissions.
-
-## Verification scope
-
-The uploaded configuration errors were reproduced using the existing backend source. The corrected configuration is checked with TypeScript, the backend tests, and a production build using the workspace's installed dependencies. Fresh npm installation on your machine and real AI-provider calls are not verified by those checks.
-
-If another error remains on your machine, provide the exact terminal error and the command that produced it. Do not send .env or .dev.vars contents.
+Only edit files your lane owns · fixed contracts live in `docs/CONTRACTS.md` · need a shared
+change? post `CONTRACT CHANGE: …` · small PRs, rebase on `main`, Carter merges · never commit
+`.env.local`, `local.db` or `uploads/`.
