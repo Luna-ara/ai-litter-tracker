@@ -10,6 +10,10 @@ clean them up, prove it with before/after photos and get paid through Stripe.
 
 ## Start here
 
+**Team members: open your AI assistant in the repo root and paste your kickoff line from
+[`START_HERE.md`](START_HERE.md).** It delegates each person's work, finds your next task, and
+has the assistant work on your own branch and open a PR into `main`.
+
 | If you are… | Read |
 | --- | --- |
 | Anyone on the team | [`docs/ROADMAP.md`](docs/ROADMAP.md): the plan, timeline, gates, git workflow |

@@ -125,7 +125,7 @@ has to create a file in a folder another lane will also create.
 ## 6. Git workflow
 
 1. `main` must always build and run. Never push directly to `main` (the foundation commit was the one exception).
-2. Branch per task: `<name>/<thing>`, for example `rohan/submit-flow`, `luna/review-queue`.
+2. Branch per task: `<name>/<task-number>-<slug>`, for example `rohan/5-submit-flow`, `luna/5-review-queue`.
 3. Before opening a PR: `git fetch origin && git rebase origin/main`, then `npm run check:lane -- <name> && npm run typecheck && npm run lint`.
 4. Open small PRs, at least one every ~90 minutes. Carter merges (squash merge).
 5. **Only edit files you own.** The PR template asks you to confirm this.

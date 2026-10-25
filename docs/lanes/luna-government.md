@@ -8,6 +8,10 @@ cleanup. It's shown on the laptop during the 9:00 AM Sunday demo.
 (Carter's lane): you call three plain functions, and without keys they run in "simulated" mode,
 so everything works on your machine with zero setup.
 
+> **Quickest start:** paste your kickoff line from [`START_HERE.md`](../../START_HERE.md) into your
+> assistant. It finds your next task here, works on its own branch (`luna/<task>-<slug>`) and
+> opens a PR into `main`. The manual steps below are the same process, spelled out.
+
 ---
 
 ## 0. One-time setup (~10 minutes)
@@ -36,7 +40,7 @@ to stop and describe the change instead.
 
 ```bash
 git switch main && git pull                 # always start from the latest main
-git switch -c luna/<short-task-name>        # e.g. luna/dashboard
+git switch -c luna/<task-number>-<slug>     # e.g. luna/2-dashboard
 claude                                      # then paste the task prompt
 ```
 
@@ -102,14 +106,14 @@ pending submission. Run it with `npx tsx --env-file=.env.local <file>` and **don
 
 | # | Task | Rough time | Branch |
 | --- | --- | --- | --- |
-| 1 | Pricing + severity picker | 25 min | `luna/pricing` |
-| 2 | Dashboard (`/gov`) | 45 min | `luna/dashboard` |
-| 3 | Create hotspot (page + API) | 50 min | `luna/new-hotspot` |
-| 4 | Hotspot detail + fund the bounty | 50 min | `luna/funding` |
-| 5 | Review queue | 30 min | `luna/review-queue` |
-| 6 | Review detail + approve/flag + payout (the demo's payoff) | 60 min | `luna/review` |
+| 1 | Pricing + severity picker | 25 min | `luna/1-pricing` |
+| 2 | Dashboard (`/gov`) | 45 min | `luna/2-dashboard` |
+| 3 | Create hotspot (page + API) | 50 min | `luna/3-new-hotspot` |
+| 4 | Hotspot detail + fund the bounty | 50 min | `luna/4-funding` |
+| 5 | Review queue | 30 min | `luna/5-review-queue` |
+| 6 | Review detail + approve/flag + payout (the demo's payoff) | 60 min | `luna/6-review` |
 | — | **Cut line**: only after the 11 PM checkpoint | | |
-| 7 | Polish: tabs, Stripe links, skeletons | as time allows | `luna/polish` |
+| 7 | Polish: tabs, Stripe links, skeletons | as time allows | `luna/7-polish` |
 
 The government side of the demo (`docs/DEMO.md`) needs Tasks 3, 4 and 6. Task 2 is the opening shot.
 

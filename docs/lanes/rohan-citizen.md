@@ -7,6 +7,10 @@ before and after photos, submit, see the verification score, and track earnings.
 **You need no external accounts or API keys.** Login, the camera, uploads and payments are
 already built. You only write app code, in your own folders.
 
+> **Quickest start:** paste your kickoff line from [`START_HERE.md`](../../START_HERE.md) into your
+> assistant. It finds your next task here, works on its own branch (`rohan/<task>-<slug>`) and
+> opens a PR into `main`. The manual steps below are the same process, spelled out.
+
 ---
 
 ## 0. One-time setup (~10 minutes)
@@ -34,7 +38,7 @@ need to paste them in.
 
 ```bash
 git switch main && git pull                 # always start from the latest main
-git switch -c rohan/<short-task-name>       # e.g. rohan/hotspot-list
+git switch -c rohan/<task-number>-<slug>    # e.g. rohan/1-hotspot-list
 codex                                       # then paste the task prompt
 ```
 
@@ -95,16 +99,16 @@ logs you in with one click. Run `npm run db:reset` anytime to start over.
 
 | # | Task | Rough time | Branch |
 | --- | --- | --- | --- |
-| 0 | Seed photos | 15 min | `rohan/seed-photos` |
-| 1 | Hotspot list | 40 min | `rohan/hotspot-list` |
-| 2 | Hotspot detail | 30 min | `rohan/hotspot-detail` |
-| 3 | Fake GPS + fake AI helpers | 20 min | `rohan/fakes` |
-| 4 | `POST /api/submissions` | 30 min | `rohan/submissions-api` |
-| 5 | Submit flow (the demo's centerpiece) | 60 min | `rohan/submit-flow` |
-| 6 | Submission result | 30 min | `rohan/submission-result` |
-| 7 | Earnings | 30 min | `rohan/earnings` |
+| 0 | Seed photos | 15 min | `rohan/0-seed-photos` |
+| 1 | Hotspot list | 40 min | `rohan/1-hotspot-list` |
+| 2 | Hotspot detail | 30 min | `rohan/2-hotspot-detail` |
+| 3 | Fake GPS + fake AI helpers | 20 min | `rohan/3-fakes` |
+| 4 | `POST /api/submissions` | 30 min | `rohan/4-submissions-api` |
+| 5 | Submit flow (the demo's centerpiece) | 60 min | `rohan/5-submit-flow` |
+| 6 | Submission result | 30 min | `rohan/6-submission-result` |
+| 7 | Earnings | 30 min | `rohan/7-earnings` |
 | — | **Cut line**: only after the 11 PM checkpoint | | |
-| 8 | Polish: loading skeletons + map | as time allows | `rohan/polish` |
+| 8 | Polish: loading skeletons + map | as time allows | `rohan/8-polish` |
 
 The citizen side of the demo (§3 of `docs/DEMO.md`) needs Tasks 1–6. Task 7 is the closing shot.
 

@@ -15,6 +15,7 @@ most important rule is **don't create merge conflicts**: only touch files your h
 
 ## Read before writing any code
 
+0. **`START_HERE.md`**: who owns what, how to find the next task, and the branch → PR workflow. Follow its §3.
 1. `docs/CONTRACTS.md`: schema, types, shared helper signatures, API shapes, **file ownership**
 2. The runbook for the person you're helping: `docs/lanes/rohan-citizen.md` (Rohan, using Codex),
    `docs/lanes/luna-government.md` (Luna, using Claude Code), or `docs/lanes/carter-foundation.md`.
@@ -36,6 +37,10 @@ most important rule is **don't create merge conflicts**: only touch files your h
    and shadcn components from `@/components/ui/*`.
 5. **No migrations or schema edits** outside Carter's lane.
 6. Never commit secrets, `.env.local`, `local.db`, or `uploads/`.
+7. **Never commit or push to `main`.** Work on your own branch named `<name>/<task-number>-<slug>`
+   (e.g. `rohan/5-submit-flow`), push it, and open a pull request into `main`
+   (`gh pr create --base main`, or hand the human the link `git push` prints). One task per PR.
+   Carter reviews and merges; never merge your own PR.
 
 ## Next.js 16 specifics (your training data may predate these)
 
