@@ -1,24 +1,16 @@
 # Rohan's demo guide
 
-Thanks for being on the team, Rohan! The app is finished and tested. Follow these steps in order,
+Thanks for being on the team, Rohan! The app is finished and tested, including your citizen app. Follow these steps in order,
 copying and pasting each command into your terminal. Allow about 30 minutes.
 
 ---
 
 ## Part 1: Get the app on your laptop
 
-### Step 1: Save your own work
+### Step 1: Your code is already in! 🎉
 
-Open a terminal **in the project folder you've been working in** and run these one at a time:
-
-```bash
-git switch -c rohan/my-work
-git add -A
-git commit -m "Rohan's hackathon work"
-git push -u origin rohan/my-work
-```
-
-If it says "nothing to commit", that's fine. Go to step 2.
+Your citizen app (PR #10) is merged and it's what powers the demo. It passed every test.
+Nothing to do here, so go to step 2.
 
 ### Step 2: Download the finished app into a new folder
 
@@ -28,7 +20,8 @@ Go to your Desktop in the terminal:
 cd ~/Desktop
 ```
 
-Then download the app and install it (this takes a minute or two):
+Then download the latest app and install it (this takes a minute or two). A fresh folder
+means nothing old can get in the way:
 
 ```bash
 git clone https://github.com/Luna-ara/ai-litter-tracker.git civicbounty-demo
