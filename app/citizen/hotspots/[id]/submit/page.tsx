@@ -1,11 +1,30 @@
-import { PagePlaceholder } from "@/components/page-placeholder";
+import type { Metadata } from "next";
+import { notFound, redirect } from "next/navigation";
+import { SubmitFlow } from "@/components/citizen/submit-flow";
 import { requireUser } from "@/lib/auth";
+import { getHotspot } from "@/lib/citizen/queries";
 
-// TODO(Rohan): replace this placeholder. Spec: docs/lanes/rohan-citizen.md → Task 5.
-export default async function SubmitACleanupPage({ params }: PageProps<"/citizen/hotspots/[id]/submit">) {
+export const metadata: Metadata = { title: "Submit a cleanup" };
+
+export default async function SubmitCleanupPage({ params }: PageProps<"/citizen/hotspots/[id]/submit">) {
   await requireUser("citizen");
   const { id } = await params;
-  void id;
+  const hotspot = await getHotspot(id);
+  if (!hotspot) notFound();
+  if (hotspot.status !== "open") redirect(`/citizen/hotspots/${id}`);
 
-  return <PagePlaceholder title="Submit a cleanup" owner="Rohan" task="docs/lanes/rohan-citizen.md (Task 5)" />;
+  return (
+    <div className="mx-auto max-w-md px-4 py-6">
+      <SubmitFlow
+        hotspot={{
+          id: hotspot.id,
+          title: hotspot.title,
+          neighborhood: hotspot.neighborhood,
+          lat: hotspot.lat,
+          lng: hotspot.lng,
+          bountyCents: hotspot.bountyCents,
+        }}
+      />
+    </div>
+  );
 }
