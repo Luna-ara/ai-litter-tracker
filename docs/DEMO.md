@@ -22,7 +22,9 @@
 ## 2. Merge order (Carter)
 
 Merge in dependency order, so each step can be checked as it lands. After each group:
-`git switch main && git pull && npm ci && npm run db:reset`, start the app, then run `npm run verify:demo`.
+stop the app, `git switch main && git pull && npm ci && npm run db:reset`, start the app again,
+then run `npm run verify:demo`. (Always stop the app before `db:reset`; resetting under a running
+app causes HTTP 500s.)
 
 1. Carter: camera (#3) and the morning kit
 2. Rohan 0–3 (photos, list, detail, fakes) and Luna 1–3 (pricing, dashboard, new hotspot). These never conflict across lanes.
@@ -60,8 +62,8 @@ placeholder, and names the owner and task for each failure. If a lane is missing
    npm start
    ```
 5. In a third terminal: `npm run verify:demo`. It should print "Demo path is green", and the
-   payout line should say `payout sent` (not `simulated`). Then **run `npm run db:reset` again**,
-   because the check leaves test data behind, and restart `npm start`.
+   payout line should say `payout sent` (not `simulated`). Then **stop `npm start`, run
+   `npm run db:reset`, and start it again**, because the check leaves test data behind.
 6. **Phone:** open the tunnel URL, log in with **Demo citizen**, open any hotspot's submit page
    and allow camera access once.
 7. **Laptop browser:** log in with **Demo city staff** at the tunnel URL. In a second tab, open the

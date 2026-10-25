@@ -5,6 +5,9 @@
 //   npm run db:reset && npm run dev        # (or build + start)
 //   npm run verify:demo                    # another terminal; BASE_URL=... to point elsewhere
 //
+// It leaves test data behind. To re-run: stop the app, `npm run db:reset`, start the app again
+// (resetting while the app runs leaves it holding the deleted database file → HTTP 500s).
+//
 // Each failure names the owning lane and task, so after merging you know who to ping.
 
 const BASE = (process.env.BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
@@ -154,6 +157,15 @@ async function main() {
   if (!targetId) {
     record(false, "submit cleanup", ROHAN("Task 1/4"), "no open hotspot found (create/fund failed and /citizen lists none)");
   } else {
+    // Out-of-range first, while the hotspot is still open, so the geofence (422) is what rejects it.
+    const far = await alex.request("POST", "/api/submissions", {
+      hotspotId: targetId,
+      beforeUrl,
+      afterUrl,
+      location: { lat: candidates[0].lat + 1, lng: candidates[0].lng, accuracy: 8 },
+    });
+    record(far.status === 422, "submit far from the hotspot → 422", ROHAN("Task 4"), `HTTP ${far.status}`);
+
     let target = candidates[0];
     let location = { lat: target.lat + 0.00005, lng: target.lng, accuracy: 8 };
     let submitted = await alex.request("POST", "/api/submissions", { hotspotId: targetId, beforeUrl, afterUrl, location });
@@ -176,13 +188,6 @@ async function main() {
     const again = await alex.request("POST", "/api/submissions", { hotspotId: targetId, beforeUrl, afterUrl, location });
     record(again.status === 409, "second submit on same hotspot → 409", ROHAN("Task 4"), `HTTP ${again.status}`);
 
-    const far = await alex.request("POST", "/api/submissions", {
-      hotspotId: targetId,
-      beforeUrl,
-      afterUrl,
-      location: { lat: target.lat + 1, lng: target.lng, accuracy: 8 },
-    });
-    record([409, 422].includes(far.status), "submit far away is rejected", ROHAN("Task 4"), `HTTP ${far.status}`);
   }
 
   // Government: flag requires a note, approve pays out
@@ -199,7 +204,7 @@ async function main() {
       `HTTP ${approved.status}${payout ? `, payout ${payout.status}` : ""}`,
     );
     if (payout?.status === "simulated" && process.env.STRIPE_SECRET_KEY) {
-      record(null, "Stripe transfer", CARTER, "payout was simulated even though Stripe keys are set: check the server log");
+      record(null, "Stripe transfer", CARTER, "payout was simulated even though Stripe keys are set: see the [payments] line in the server log (connected account missing the transfers capability, or no available balance)");
     }
 
     const twice = await city.request("PATCH", `/api/submissions/${submissionId}/review`, { action: "approve" });
@@ -235,8 +240,8 @@ main()
     if (failed.length) {
       const owners = [...new Set(failed.map((r) => r.owner))];
       console.log(`Needs attention: ${owners.join("; ")}`);
-      console.log("Run `npm run db:reset` before running this again (it changes data).");
+      console.log("Before re-running: stop the app, `npm run db:reset`, start the app (this check changes data).");
       process.exit(1);
     }
-    console.log("Demo path is green. Run `npm run db:reset` before the real demo.");
+    console.log("Demo path is green. Before the real demo: stop the app, `npm run db:reset`, start it again.");
   });
