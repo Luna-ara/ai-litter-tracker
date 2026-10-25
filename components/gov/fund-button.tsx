@@ -19,12 +19,14 @@ export function FundButton({ hotspotId, bountyCents }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ hotspotId }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data: Record<string, unknown> = {};
+      try { data = JSON.parse(text); } catch { /* empty body or HTML error page */ }
       if (!res.ok) {
-        toast.error(data.error ?? "Could not start checkout");
+        toast.error((data.error as string) ?? `Server error ${res.status}`);
         return;
       }
-      window.location.href = data.url;
+      window.location.href = data.url as string;
     } catch {
       toast.error("Network error");
     } finally {

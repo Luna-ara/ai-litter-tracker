@@ -77,13 +77,17 @@ export function NewHotspotForm() {
           beforeImageUrl,
         }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data: Record<string, unknown> = {};
+      try { data = JSON.parse(text); } catch { /* empty body or HTML error page */ }
       if (!res.ok) {
-        toast.error(data.error ?? "Failed to create hotspot");
+        toast.error((data.error as string) ?? `Server error ${res.status}`);
         return;
       }
       toast.success("Hotspot created. Fund it to make it live.");
-      router.push(`/gov/hotspots/${data.hotspot.id}`);
+      router.push(`/gov/hotspots/${(data.hotspot as { id: string }).id}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Unexpected error");
     } finally {
       setLoading(false);
     }

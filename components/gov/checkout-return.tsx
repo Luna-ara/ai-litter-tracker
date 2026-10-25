@@ -29,11 +29,13 @@ export function CheckoutReturn({ hotspotId, sessionId, canceled }: Props) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sessionId, hotspotId }),
         });
-        const data = await res.json();
+        const text = await res.text();
+        let data: Record<string, unknown> = {};
+        try { data = JSON.parse(text); } catch { /* empty body or HTML error page */ }
         if (res.ok) {
           toast.success("Bounty funded. The hotspot is now live.");
         } else {
-          toast.error(data.error ?? "Could not confirm payment");
+          toast.error((data.error as string) ?? `Server error ${res.status}`);
         }
       } catch {
         toast.error("Network error confirming payment");

@@ -39,9 +39,11 @@ export function ReviewActions({ submissionId, citizenName, bountyCents }: Props)
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action, note: (actionNote ?? note) || undefined }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data: Record<string, unknown> = {};
+      try { data = JSON.parse(text); } catch { /* empty body or HTML error page */ }
       if (!res.ok) {
-        toast.error(data.error ?? "Action failed");
+        toast.error((data.error as string) ?? `Server error ${res.status}`);
         return;
       }
       if (action === "approve") {
