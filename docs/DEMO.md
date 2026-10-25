@@ -18,7 +18,7 @@ something on the demo path.
 | Time | Who | What |
 | --- | --- | --- |
 | 7:00–7:30 | Rohan | [`rohan-demo-day.md`](./rohan-demo-day.md) steps 1–4. Carter is on chat for any ✗ in `demo:preflight` |
-| 7:30–8:15 | Rohan + Luna | Two full rehearsals of §3, with `npm run db:reset` between them (stop the app first) |
+| 7:30–8:15 | Rohan + Luna | First run: the full feature checklist in [`REHEARSAL.md`](./REHEARSAL.md) (~15 min). Second run: the 3-minute script in §3. `npm run db:reset` between them (stop the app first) |
 | 8:15–8:30 | Rohan | Record a backup screen video of one full run (§5) |
 | 8:30 | Rohan | Stop the app, `npm run db:reset`, `npm start`, log both windows in, close other tabs, charge the laptop |
 
