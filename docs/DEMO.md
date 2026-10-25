@@ -1,138 +1,80 @@
 # Demo day: Sunday, Oct 25, 2026, 9:00 AM (3 minutes + Q&A)
 
-| Role | Who | Device |
-| --- | --- | --- |
-| **Presenter** + citizen side | **Rohan** | **Rohan's laptop runs the app** (the demo machine), and his phone does the citizen flow |
-| Government side | **Luna** | Drives the city-staff screens in a browser on Rohan's laptop (or her own laptop pointed at the tunnel URL) |
-| Integration + on call | **Carter** | Merges everything 7:00–8:00 AM, then on chat until the demo ends |
+**Status: `main` is complete and verified.** Every feature works end to end, including real Stripe
+sandbox funding and payouts. `main` is **frozen**: no merges before the demo unless they fix
+something on the demo path.
 
----
+| Role | Who | Where |
+| --- | --- | --- |
+| **Presenter**, citizen side | **Rohan** | Rohan's laptop runs the app. Citizen in an **incognito** Chrome window |
+| Government side | **Luna** | Normal Chrome window on Rohan's laptop (city staff) |
+| On call | **Carter** | Group chat until the demo ends |
+
+**Rohan's setup instructions: [`rohan-demo-day.md`](./rohan-demo-day.md)** (save his work to
+`rohan/my-work`, fresh clone, `.env.local`, `npm run demo:preflight`, build, start).
 
 ## 1. Morning timeline
 
 | Time | Who | What |
 | --- | --- | --- |
-| By **7:00** | Rohan, Luna | Every finished task is pushed **with a PR open** (even if it isn't perfect) |
-| 7:00–7:45 | Carter | Merge PRs in the order in §2, run `npm run verify:demo` after each batch, and ping owners about failures |
-| 7:45 | Carter | Post "main is frozen" in chat. Nothing else merges after this unless it fixes the demo path. |
-| 7:45–8:15 | Rohan | Demo machine setup (§3) |
-| 8:15–8:45 | Rohan + Luna | Two full rehearsals of the script (§4), then `npm run db:reset` and pre-fund one hotspot |
-| 8:45 | Everyone | Phones charged, tabs open, backup video ready |
+| 7:00–7:30 | Rohan | [`rohan-demo-day.md`](./rohan-demo-day.md) steps 1–4. Carter is on chat for any ✗ in `demo:preflight` |
+| 7:30–8:15 | Rohan + Luna | Two full rehearsals of §3, with `npm run db:reset` between them (stop the app first) |
+| 8:15–8:30 | Rohan | Record a backup screen video of one full run (§5) |
+| 8:30 | Rohan | Stop the app, `npm run db:reset`, `npm start`, log both windows in, close other tabs, charge the laptop |
 
-## 2. Merge order (Carter)
+## 2. What was verified overnight
 
-Merge in dependency order, so each step can be checked as it lands. After each group:
-stop the app, `git switch main && git pull && npm ci && npm run db:reset`, start the app again,
-then run `npm run verify:demo`. (Always stop the app before `db:reset`; resetting under a running
-app causes HTTP 500s.)
+- `npm run verify:demo`: 20/20 API checks pass, including a real `payout sent` Stripe transfer
+- Full browser rehearsal on the production build: create hotspot → pay $25 via Stripe Checkout →
+  live → citizen check-in → camera before/after → submit with AI score → approve & pay → earnings
+  show $25.00 paid; flag with a note → the citizen sees the note; new citizen signup. Zero console errors.
+- Every page renders at phone (390 px) and laptop width with no layout overflow
+- The Stripe sandbox account can receive transfers, with about $190 of payout balance
 
-1. Carter: camera (#3) and the morning kit
-2. Rohan 0–3 (photos, list, detail, fakes) and Luna 1–3 (pricing, dashboard, new hotspot). These never conflict across lanes.
-3. Rohan 4 (submissions API) and Luna 4 (funding)
-4. Rohan 5–6 (submit flow, result) and Luna 5–6 (review queue, approve/pay)
-5. Rohan 7 (earnings) and anything else
+## 3. The script
 
-`npm run verify:demo` prints ✓/✗ for every step of the demo path and every page still showing a
-placeholder, and names the owner and task for each failure. If a lane is missing by 7:45,
-**cut that scene from the script** (§4 notes what to skip) rather than writing it at 8 AM.
-
-## 2a. Citizen side: Rohan's PRs or the fallback (decide by 7:30)
-
-Luna's government app (Tasks 1–6) is **already on `main`**, tested against real Stripe sandbox.
-Rohan's citizen app wasn't pushed overnight, so a complete fallback of his lane, built from his
-runbook (same files, same screens), is waiting as **draft PR #6** (`carter/citizen-fallback`).
-With it, the full demo was rehearsed end to end in a browser, including a real $25 Stripe transfer.
-
-1. **By 7:00:** Rohan pushes everything he has and opens PRs (his kickoff line does it).
-2. **7:00–7:20, Carter:** merge Rohan's branches into a scratch branch on top of `main`, start the
-   app, run `npm run verify:demo`.
-3. **7:30 decision:**
-   - **Rohan's version is green** (citizen steps and pages pass): merge his PRs and close #6. He
-     presents what he built.
-   - **Red, partial, or nothing pushed by 7:15:** mark #6 ready, merge it, and close Rohan's PRs
-     (keep the branches for after the demo). Don't mix files from the two versions; they share
-     `lib/citizen/queries.ts`, and mixing invites 7:45 surprises.
-4. Either way the demo script (§4) is identical, so Rohan rehearses the same flow.
-5. **Seed photos** (Rohan's Task 0) are only cosmetic: cards show a placeholder icon without them.
-   If they're missing at 7:30, drop four JPEGs into `public/seed/hotspot-1..4.jpg`.
-
-## 3. Demo machine setup (Rohan's laptop)
-
-> **Rohan:** paste this into Codex: `I'm Rohan. Follow docs/DEMO.md §3 to set up this laptop as
-> the demo machine. Don't change any code.` Codex runs the commands; you do the browser and phone parts.
-
-1. Get the latest code and a clean database:
-   ```bash
-   git switch main && git pull
-   npm ci
-   ```
-2. In `.env.local`, set the four values **Carter sent you by DM** (never commit them):
-   `AUTH_SECRET`, `STRIPE_SECRET_KEY` (`sk_test_…`), `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (`pk_test_…`),
-   `DEMO_CITIZEN_STRIPE_ACCOUNT_ID` (`acct_…`).
-3. Start the tunnel so the phone gets HTTPS (needed for the camera):
-   ```bash
-   npx cloudflared tunnel --url http://localhost:3000
-   ```
-   Copy the `https://….trycloudflare.com` URL it prints into `NEXT_PUBLIC_APP_URL` in `.env.local`.
-   Leave this terminal running.
-4. In a second terminal, build and run the production app:
-   ```bash
-   npm run db:reset
-   npm run build
-   npm start
-   ```
-5. In a third terminal: `npm run verify:demo`. It should print "Demo path is green", and the
-   payout line should say `payout sent` (not `simulated`). Then **stop `npm start`, run
-   `npm run db:reset`, and start it again**, because the check leaves test data behind.
-6. **Phone:** open the tunnel URL, log in with **Demo citizen**, open any hotspot's submit page
-   and allow camera access once.
-7. **Laptop browser:** log in with **Demo city staff** at the tunnel URL. In a second tab, open the
-   Stripe dashboard (Connect → Transfers). Ask Carter for a team invite if you can't see it.
-8. Pre-fund one hotspot so the story starts with something live: as city staff, open the unfunded
-   "Litter along the playground fence" hotspot → **Fund bounty** → card `4000 0000 0000 0077`,
-   any future date, any CVC.
-
-**Stripe Checkout gotchas (learned in rehearsal):**
-- Click **Card** first; the card fields are hidden until you do.
-- **Untick "Save my information with Link"**, or Checkout demands a phone number and Pay won't go through.
-- The account name shown on Checkout comes from Stripe → Settings → Business → Public details. Set it to "CivicBounty".
-- Payouts draw from the sandbox platform balance (about $195 after tonight, enough for ~7 payouts). Top it up with a `4000 0000 0000 0077` payment if `verify:demo` shows `payout simulated`.
-
-**If the tunnel or the phone fails:** do the citizen side in a laptop browser at
-`http://localhost:3000`. The camera works on localhost, or use "Upload instead".
-
-## 4. The script
-
-| Time | Who / screen | Action | Say |
+| Time | Who / window | Action | Say |
 | --- | --- | --- | --- |
-| 0:00–0:20 | Rohan, landing page | none | "Litter cleanup depends on volunteers nobody pays and nobody can verify. CivicBounty lets cities post paid bounties and pays citizens for verified cleanups." |
-| 0:20–1:00 | Luna, `/gov/hotspots/new` | Fill in the title, pick **Medium** → $25 appears, create, **Fund bounty**, pay with `4000 0000 0000 0077` | "The city marks a hotspot and picks a severity, and our pricing suggests a bounty. They fund it up front through Stripe, so the money is guaranteed." |
-| 1:00–2:05 | Rohan, phone `/citizen` | Open the new hotspot → **Start cleanup** → **Check my location** → before photo of a cup on the table → remove the cup → after photo → **Submit** → AI score appears | "A citizen nearby checks in with GPS and takes before and after photos with the in-app camera. Our verification scores the cleanup." |
-| 2:05–2:45 | Luna, `/gov/review` | Open the submission → photos side by side → **Approve & pay** → switch to the Stripe tab showing the $25 transfer | "The city reviews the photos and approves, and the citizen is paid through Stripe Connect. Suspicious work can be flagged instead." (Point at **Flag**.) |
-| 2:45–3:00 | Rohan, phone `/citizen/earnings` | Show "Paid $25.00" | "Cleaner streets, verified work, and money going to the people who did it. That's CivicBounty." |
+| 0:00–0:20 | Rohan | Landing page (or the citizen list) | "Litter cleanup depends on volunteers nobody pays and nobody can verify. CivicBounty lets cities post paid bounties and pays citizens for verified cleanups." |
+| 0:20–1:00 | Luna, city window | **New hotspot** → title "Cups by the demo table", neighborhood → pick **Medium** ($25 appears) → **Create** → **Fund bounty** → Stripe: click **Card**, untick **Save with Link**, card `4000 0000 0000 0077`, `12/34`, `123`, ZIP `94103` → Pay | "The city marks a hotspot, our pricing suggests a fair bounty, and they fund it up front through Stripe, so the money is guaranteed." |
+| 1:00–2:05 | Rohan, citizen window | Refresh **Hotspots** → open the new one → **Start cleanup** → **Check my location** → before photo of a cup on the table → remove the cup → after photo → **Submit** → score appears | "A citizen checks in at the location and takes before and after photos with the in-app camera. Our verification scores the cleanup." |
+| 2:05–2:45 | Luna, city window | **Review queue** → open the submission → photos side by side → **Approve & pay $25.00** | "The city reviews the photos and approves, and the citizen is paid instantly through Stripe Connect. Suspicious work can be flagged instead." (Point at **Flag**.) |
+| 2:45–3:00 | Rohan, citizen window | **Earnings**: "Paid out $25.00" | "Cleaner streets, verified work, and money going to the people who did it. That's CivicBounty." |
 
-**If a lane isn't finished:** without Luna's Task 4, start from the pre-funded seeded hotspot and
-skip "fund it". Without Rohan's Task 7, end on the submission result page instead of earnings.
-Without the Stripe tab, show "Paid" in the app and say "settled through Stripe Connect".
+## 4. Q&A prep
 
-## 5. Q&A prep
-
-- **How do you prevent fraud?** Three layers: a GPS geofence check (simulated in this demo; the
-  server already checks distance), an AI before/after comparison (simulated), and a required city
-  review with flagging. Next up: photo timestamps and duplicate-image detection.
-- **Is the AI real?** Not in this demo. The design sends both photos to a vision model that
-  returns a completion percentage and a reason, and a human still approves every payment.
+- **How do you prevent fraud?** Three layers: a GPS geofence (simulated in this demo; the server
+  already rejects submissions too far from the hotspot), an AI before/after comparison
+  (simulated), and a required city review with flagging. Next up: photo timestamps and
+  duplicate-image detection.
+- **Is the AI real?** Not in this demo. The design sends both photos to a vision model that returns
+  a completion percentage, and a human still approves every payment.
 - **Is the money real?** It's real Stripe, in sandbox mode: Checkout collects the bounty and
-  Connect transfers it. Going live means live keys; Stripe handles identity checks and taxes.
+  Connect transfers it to the citizen. Going live means live keys; Stripe handles identity
+  checks and taxes.
 - **Who funds bounties?** City cleanup budgets, business districts, local sponsors. Bounties are
-  funded up front and held until a cleanup is approved.
+  funded up front and only paid out after approval.
 - **What if two people clean the same spot?** The first valid submission claims the hotspot. If
   it's flagged, the hotspot reopens.
-- **What did you build?** All of it, overnight: Next.js, SQLite + Drizzle, shadcn/ui, Stripe
-  Checkout + Connect, an in-browser camera.
+- **What did you build it with?** Next.js, React, SQLite + Drizzle, shadcn/ui, Stripe Checkout +
+  Connect, and an in-browser camera.
 
-## 6. Backup plan
+## 5. Backup plan
 
-- Record a screen video of one full run as soon as the demo path is green (on Rohan's machine
-  after §3). If anything breaks live, play it and narrate.
-- Phone hotspot if the venue Wi-Fi fails (Stripe and the tunnel need internet).
+- If anything breaks live, play the backup video and narrate.
+- If Stripe or the Wi-Fi fails, use a phone hotspot. As a last resort, remove the Stripe keys from
+  `.env.local` and restart: payments switch to "simulated" and the whole flow still works.
+
+## 6. Optional: citizen side on a phone
+
+Only if setup finishes early. Run `npx cloudflared tunnel --url http://localhost:3000`, set the
+printed `https://…trycloudflare.com` URL as `NEXT_PUBLIC_APP_URL` in `.env.local`, then
+`npm run build && npm start`. Open the tunnel URL on the phone and log in as the demo citizen.
+The laptop-only setup above is the safe default.
+
+## 7. Merge and maintenance notes (Carter)
+
+- `npm run verify:demo` checks the whole demo path against a running app (stop the app,
+  `npm run db:reset`, start it, then run the check; it leaves test data behind).
+- Rohan's own work lands on `rohan/my-work` as his contribution. It is **not** merged before the
+  demo. Review it together afterwards.

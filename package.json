@@ -12,7 +12,8 @@
     "db:seed": "tsx --env-file-if-exists=.env.local scripts/seed.ts",
     "db:reset": "tsx --env-file-if-exists=.env.local scripts/reset-db.ts",
     "check:lane": "node scripts/check-lane.mjs",
-    "verify:demo": "tsx scripts/verify-demo.ts"
+    "verify:demo": "tsx scripts/verify-demo.ts",
+    "demo:preflight": "tsx --env-file-if-exists=.env.local scripts/demo-preflight.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",

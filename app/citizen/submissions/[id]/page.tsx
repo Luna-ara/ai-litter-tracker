@@ -46,7 +46,7 @@ export default async function SubmissionPage({ params }: PageProps<"/citizen/sub
             <p className="text-3xl font-semibold">{submission.aiScore}%</p>
           </div>
           <Progress value={submission.aiScore} />
-          <p className="text-sm text-muted-foreground">cleanup verified · {submission.aiReason}</p>
+          <p className="text-sm text-muted-foreground">AI estimate · {submission.aiReason}</p>
         </CardContent>
       </Card>
 
