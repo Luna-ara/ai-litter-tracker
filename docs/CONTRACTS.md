@@ -269,9 +269,9 @@ type CameraCaptureProps = {
 };
 export function CameraCapture(props: CameraCaptureProps): JSX.Element;
 ```
-v1 (already built) opens the phone's native camera through a file input and uploads the photo.
-Carter later swaps the inside for a live viewfinder. **The props never change**, so Rohan and Luna
-just use it.
+Live viewfinder (rear camera, shutter, retake, resized JPEG upload), with an "Upload instead"
+file input as the fallback when the camera is blocked or the page isn't HTTPS. **The props never
+change**, so Rohan and Luna just use it. Try it at `/dev/camera` in development.
 
 ### `components/page-placeholder.tsx`
 The "being built" card that every stub page renders. Replace the whole page body when you build it.

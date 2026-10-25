@@ -26,12 +26,12 @@ against `next start`.
 
 ## Your remaining tasks
 
-### 1. Push and kick off (now)
+### 1. ✅ Push and kick off (done)
 - Push to `main`. Post in the team chat: "Foundation is on main. Clone, follow your runbook in
   `docs/lanes/`, and start with Task 1 (Rohan: Task 0, the photos)."
 - Be around for the first 30 minutes in case setup breaks on someone's machine.
 
-### 2. Stripe sandbox setup (~30 min; only the demo machine needs it)
+### 2. Stripe sandbox setup (~30 min; only the demo machine needs it). **Manual: you do this in the Stripe dashboard**
 1. Create a Stripe account → make sure **Test mode / Sandbox** is on → Developers → API keys.
    Put `sk_test_…` / `pk_test_…` in **your** `.env.local` only.
 2. Connect → get started (platform). Create an **Express** connected account for the demo
@@ -43,7 +43,8 @@ against `next start`.
 4. Check it: as city staff, fund the unfunded seeded hotspot (needs Luna's Task 4), then approve a
    cleanup (needs Luna's Task 6). A transfer should appear under Connect → Transfers.
 
-### 3. Real camera viewfinder (~90 min)
+### 3. ✅ Real camera viewfinder (PR `carter/3-camera-viewfinder`)
+Try it at `/dev/camera` (dev only; log in first). The spec below is kept for reference.
 Replace the **inside** of `components/camera/camera-capture.tsx`. **The props must not change.**
 - States: `idle → requesting → live → captured → uploading → done`, plus `error`
 - `navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 } }, audio: false })`
