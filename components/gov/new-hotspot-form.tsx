@@ -206,9 +206,8 @@ export function NewHotspotForm() {
             <p className="text-xs text-muted-foreground">{suggestedText}</p>
           </div>
 
-          <div className="space-y-2">
-            <Label>Reference photo (optional)</Label>
-            <CameraCapture label="Reference photo" onCapture={(url) => setBeforeImageUrl(url)} />
+          <div className="max-w-sm">
+            <CameraCapture label="Reference photo (optional)" onCapture={(url) => setBeforeImageUrl(url)} />
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>
