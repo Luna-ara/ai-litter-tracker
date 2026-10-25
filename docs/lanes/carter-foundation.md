@@ -1,208 +1,76 @@
-# Lane brief: Carter (foundation, login, camera)
+# Carter's runbook: foundation, login, camera, Stripe, integration
 
-> **For your LLM:** paste the prompt at the bottom of this file, along with `docs/CONTRACTS.md`
-> and `AGENTS.md`. They hold everything needed to build this lane without touching anyone else's files.
+You own every shared file, the two "must be real" cross-cutting features (**login** and the
+**camera**), the only third-party integration (**Stripe sandbox**), and merging. Rohan and Luna
+build in their own folders against what's here.
 
-## Your role
+## ✅ Already done (in the foundation commit)
 
-You build the ground the other two stand on, then the two "must be real" features that cut
-across both sides: **login** and the **camera**. You also own every shared file, merge everyone's
-PRs, and run the demo machine.
+| Area | Files | Notes |
+| --- | --- | --- |
+| App scaffold | Next.js 16.4, React 19, Tailwind 4, shadcn (radix, nova preset), green civic theme | `cacheComponents` off on purpose |
+| Data | `db/schema.ts`, `drizzle/0000_*.sql`, `lib/db.ts`, `lib/types.ts`, `scripts/seed.ts`, `scripts/reset-db.ts` | `npm run db:reset` |
+| **Real auth** | `lib/session.ts` (JWT), `lib/auth.ts`, `proxy.ts`, `app/api/auth/*`, `/login` (with demo buttons), `/signup`, `/dev/login-as` | bcrypt + HS256 JWT cookie `cb_session`, role gating in the proxy |
+| Uploads | `app/api/uploads/route.ts`, `app/api/uploads/[name]/route.ts` | Saved to `./uploads/` (gitignored), served by the API route |
+| **Payments (sandbox)** | `lib/payments.ts` | Checkout, verify, transfer; refuses non-`sk_test_` keys; falls back to simulated |
+| Camera v1 | `components/camera/camera-capture.tsx` | Native camera through a file input; final props |
+| Shared UI | `components/nav.tsx`, `brand.tsx`, `status-badge.tsx`, `page-placeholder.tsx`, `logout-button.tsx`, `auth/auth-form.tsx`, `app/page.tsx` (landing) | |
+| Stubs | Every page and route Rohan and Luna own | Each has a `TODO(<name>)` comment pointing to its task |
+| Guardrails | `scripts/check-lane.mjs` (`npm run check:lane -- rohan`), PR template, `AGENTS.md`, `CLAUDE.md` | |
 
-## Files you own
-
-Everything not owned by Rohan or Luna (see CONTRACTS §2). Most importantly: `package.json`,
-lockfile, `db/**`, `drizzle/**`, `scripts/**`, `proxy.ts`, `lib/{auth,db,types,http,format,utils}.ts`,
-`app/{layout.tsx,globals.css,page.tsx}`, `app/{login,signup,dev}/**`, `app/api/{auth,uploads}/**`,
-`components/{ui,camera}/**`, `components/{nav,status-badge}.tsx`, docs.
-
-**Don't edit** `app/citizen/**`, `app/gov/**`, `lib/citizen/**`, `lib/gov/**`, `lib/payments.ts`,
-or the submissions, hotspots and payments API routes, *even to fix a bug*. Tell the owner instead.
-(Exception: after Gate 3, with the owner's OK.)
-
----
-
-## Task 1: Phase 0 foundation (6:30–7:30 PM) · BLOCKS EVERYONE
-
-Follow the checklist in ROADMAP §4. Implementation notes:
-
-**Setup commands**
-```bash
-npx create-next-app@latest . --ts --tailwind --eslint --app --no-src-dir --import-alias "@/*" --use-npm
-npm i drizzle-orm @libsql/client bcryptjs jose zod stripe sonner lucide-react
-npm i -D drizzle-kit tsx @types/bcryptjs
-npx shadcn@latest init        # new-york, neutral
-npx shadcn@latest add button card input label textarea select badge dialog tabs table sonner avatar skeleton separator alert progress dropdown-menu
-```
-(`create-next-app` refuses a non-empty directory. Scaffold into a temp folder and move the files
-in, keeping `docs/`, `AGENTS.md`, `CLAUDE.md`, `README.md`, `.github/`.)
-
-**`drizzle.config.ts`**
-```ts
-import { defineConfig } from "drizzle-kit";
-export default defineConfig({
-  schema: "./db/schema.ts",
-  out: "./drizzle",
-  dialect: "turso",                       // libSQL dialect; works for local files
-  dbCredentials: { url: process.env.DATABASE_URL ?? "file:local.db" },
-});
-```
-
-**`lib/db.ts`**
-```ts
-import { drizzle } from "drizzle-orm/libsql";
-import { createClient } from "@libsql/client";
-import * as schema from "@/db/schema";
-const client = createClient({ url: process.env.DATABASE_URL ?? "file:local.db" });
-export const db = drizzle(client, { schema });
-export { schema };
-```
-
-**npm scripts**
-```json
-"typecheck": "tsc --noEmit",
-"db:generate": "drizzle-kit generate",
-"db:migrate": "drizzle-kit migrate",
-"db:seed": "tsx --env-file=.env.local scripts/seed.ts",
-"db:reset": "tsx --env-file=.env.local scripts/reset-db.ts"
-```
-`reset-db.ts`: delete `local.db` (plus `-wal`/`-shm` files) with `fs.rmSync(..., { force: true })`,
-run the migrations programmatically (`migrate` from `drizzle-orm/libsql/migrator`, `migrationsFolder: "./drizzle"`),
-then call the seed function. **Don't shell out to `rm`**; teammates may be on Windows.
-
-`seed.ts`: insert the users and hotspots from CONTRACTS §7 using `bcrypt.hashSync("demo1234", 10)`.
-Give Alex `stripeAccountId: process.env.DEMO_CITIZEN_STRIPE_ACCOUNT_ID || null`. Export
-`seed()` and also run it when the file is executed directly.
-
-**Auth stub (`lib/auth.ts`, Phase 0 version)**: the `cb_session` cookie holds a raw user ID.
-`getCurrentUser` looks it up in the DB. `/dev/login-as` is a page listing every user with a
-button that POSTs to a small handler in `app/dev/login-as/` that sets the cookie and redirects
-to `/citizen` or `/gov`. Implement `requireUser` and `apiUser` for real now, since they only
-depend on `getCurrentUser`.
-
-**`proxy.ts`** (Next 16 name for middleware)
-```ts
-import { NextResponse, type NextRequest } from "next/server";
-export function proxy(req: NextRequest) { /* read cb_session; redirect /citizen/* and /gov/* when logged out → /login?next=... */ }
-export const config = { matcher: ["/citizen/:path*", "/gov/:path*"] };
-```
-In the stub phase, the proxy only checks that the cookie *exists*. Page-level `requireUser(role)`
-does the role check, since it has DB access.
-
-**Uploads**: `POST /api/uploads` reads `await req.formData()`, field `file`, checks the type
-(`image/jpeg|png|webp`) and size (≤ 8 MB), writes to `./uploads/<uuid>.<ext>` (create the
-folder with `mkdirSync({ recursive: true })`), and returns `{ url: "/api/uploads/<file>" }`.
-`GET /api/uploads/[name]` validates the name with `/^[0-9a-f-]{36}\.(jpg|png|webp)$/`, then
-streams the file with the right `Content-Type`. Don't use `public/` for uploads: files added to
-`public/` after `next build` aren't served.
-
-**Camera stub**: `<CameraCapture label onCapture disabled>` renders a label, an
-`<input type="file" accept="image/*" capture="environment">`, uploads on change, shows a
-thumbnail, and calls `onCapture(url)`.
-
-**Page/route stubs**: create every file in CONTRACTS §6 with placeholder content so the other
-lanes only *edit* files.
-
-**`next.config.ts`**: add `allowedDevOrigins: ["*.trycloudflare.com", "*.ngrok-free.app"]`
-so the phone tunnel works in dev.
-
-✅ **Done when:** `npm run typecheck && npm run lint && npm run build` pass; `npm run db:reset`
-works on a fresh clone; `/dev/login-as` → Alex lands on `/citizen` (stub page), and → Parks
-Department lands on `/gov`; visiting `/gov` as Alex redirects away. Push to `main` and tell the team.
+Verified: typecheck, lint and production build are clean; auth, role redirects, tampered
+cookies, uploads, path traversal, duplicate signup and the dev-only route were smoke-tested
+against `next start`.
 
 ---
 
-## Task 2: Real authentication (7:30–9:30 PM)
+## Your remaining tasks
 
-Replace the stub **without changing any exported signature**.
+### 1. Push and kick off (now)
+- Push to `main`. Post in the team chat: "Foundation is on main. Clone, follow your runbook in
+  `docs/lanes/`, and start with Task 1 (Rohan: Task 0, the photos)."
+- Be around for the first 30 minutes in case setup breaks on someone's machine.
 
-- `lib/auth.ts`
-  - `hashPassword` / `verifyPassword` with `bcryptjs` (cost 10)
-  - `createSession(user)`: `new SignJWT({ sub: user.id, role, name, email }).setProtectedHeader({ alg: "HS256" }).setIssuedAt().setExpirationTime("7d").sign(secret)`, where `secret = new TextEncoder().encode(process.env.AUTH_SECRET)`
-  - Set the cookie: `(await cookies()).set("cb_session", token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 60*60*24*7 })`
-  - `getCurrentUser()`: `jwtVerify` the cookie and return a `SessionUser` from the claims (no DB hit); return `null` on any error
-- `POST /api/auth/signup`: zod `{ name: min 1, email: email, password: min 8 }`, lowercase the email, `409` if it exists, always `role: "citizen"`, create the session, `201 { user }`
-- `POST /api/auth/login`: generic `401 "Invalid email or password"` on any failure
-- `POST /api/auth/logout`: delete the cookie
-- `GET /api/auth/me`
-- `proxy.ts`: verify the JWT with `jose` (it works in the proxy runtime). Logged out → `/login?next=<path>`. Wrong role (`/gov/*` as a citizen, or `/citizen/*` as government) → their own home.
-- `/login`: email + password form (shadcn Card), errors through a toast, honors `?next=`, and a
-  **"Demo accounts"** row of buttons that fill *and submit* Alex (citizen) and Parks Department
-  (government). This saves a lot of time in the demo.
-- `/signup`: name, email, password → `/citizen`
-- `components/nav.tsx`: call `getCurrentUser()`; show role links, the user's name, a role badge, and Log out
-- `/`: if logged in, redirect to the role's home; otherwise show the landing pitch
-- Keep `/dev/login-as` working in dev (`process.env.NODE_ENV !== "production"`); have it call `createSession`
+### 2. Stripe sandbox setup (~30 min; only the demo machine needs it)
+1. Create a Stripe account → make sure **Test mode / Sandbox** is on → Developers → API keys.
+   Put `sk_test_…` / `pk_test_…` in **your** `.env.local` only.
+2. Connect → get started (platform). Create an **Express** connected account for the demo
+   citizen and complete the hosted onboarding with Stripe's test data (see
+   https://docs.stripe.com/connect/testing for the current test phone, SMS code, SSN, address
+   and bank values). Copy the `acct_…` into `DEMO_CITIZEN_STRIPE_ACCOUNT_ID`, then `npm run db:reset`.
+3. Transfers need an *available* platform balance. Pay test Checkouts with card
+   **`4000 0000 0000 0077`** (funds become available right away).
+4. Check it: as city staff, fund the unfunded seeded hotspot (needs Luna's Task 4), then approve a
+   cleanup (needs Luna's Task 6). A transfer should appear under Connect → Transfers.
 
-✅ **Done when:** you can sign up as a new citizen, log out, log back in; a tampered cookie means
-you're logged out; a citizen hitting `/gov` is redirected; the demo buttons work in one click.
+### 3. Real camera viewfinder (~90 min)
+Replace the **inside** of `components/camera/camera-capture.tsx`. **The props must not change.**
+- States: `idle → requesting → live → captured → uploading → done`, plus `error`
+- `navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 } }, audio: false })`
+- `<video autoPlay playsInline muted />` (iOS needs `playsInline` + `muted`)
+- Shutter: draw the frame to a canvas (long edge ≤ 1280 px) → `canvas.toBlob(cb, "image/jpeg", 0.75)` → preview with **Retake** / **Use photo**
+- Use photo → upload the same way v1 does → `onCapture(url)`
+- Stop all tracks after capture and on unmount
+- **Keep v1's file input as the fallback** when `getUserMedia` is missing or throws (permission denied, or plain http on a phone)
 
----
+### 4. Merge and integrate (continuous, plus the 11 PM checkpoint)
+- Review PRs: the template checklist, and `npm run check:lane -- <name>` on their branch. Squash merge.
+- At 11 PM: `npm run db:reset`, then run the ROADMAP §7 "definition of done" end to end. File bugs to owners.
+- Fix anything shared (helpers, nav, theme) and handle `CONTRACT CHANGE` requests fast. Always update `docs/CONTRACTS.md` in the same PR.
 
-## Task 3: Real camera (9:30–11:00 PM)
-
-Replace the stub inside `components/camera/camera-capture.tsx`. **Same props.**
-
-States: `idle → requesting → live → captured → uploading → done`, plus `error`.
-
-```ts
-const stream = await navigator.mediaDevices.getUserMedia({
-  video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-  audio: false,
-});
-videoRef.current.srcObject = stream;
-```
-- `<video autoPlay playsInline muted />`: iOS Safari needs `playsInline` + `muted`, or the preview stays black
-- Shutter: draw the video frame onto a `<canvas>` scaled so the long edge is ≤ 1280 px, then
-  `canvas.toBlob(cb, "image/jpeg", 0.75)`. Show the captured image with **Retake** and **Use photo** buttons.
-- **Use photo**: `FormData` with `file`, `POST /api/uploads`, `onCapture(url)`, state `done`
-  (show a thumbnail with a green check and a small "Retake")
-- **Always stop the tracks** (`stream.getTracks().forEach(t => t.stop())`) after capture and on unmount
-- **Fallback:** if `getUserMedia` is missing or throws (permission denied, insecure context),
-  show the file-input version from the stub, with a short explanation. `capture="environment"`
-  makes phones open the native camera.
-- Layout: full width, 4:3 aspect, rounded corners, big round shutter button, works at 375 px wide
-- `navigator.mediaDevices` only exists in a **secure context**: `localhost` or HTTPS. A phone hitting `http://192.168.x.x` gets the fallback.
-
-✅ **Done when:** it works on a laptop webcam at localhost and on a phone through the HTTPS
-tunnel; retake works; the uploaded URL renders; the camera light turns off after capture.
+### 5. Demo machine (after 11 PM)
+- `npx cloudflared tunnel --url http://localhost:3000` → set `NEXT_PUBLIC_APP_URL` to the tunnel
+  URL → restart → test the camera on a phone. (`allowedDevOrigins` already covers `*.trycloudflare.com`.)
+- Prefer `npm run build && npm start` for the demo, with a fresh `npm run db:reset` beforehand.
+- Record the backup video at the 2 AM freeze. Morning checklist: `docs/DEMO.md`.
 
 ---
 
-## Task 4: Integration (Gate 2, 11:00 PM)
-
-- Merge all open PRs in order; resolve conflicts (there shouldn't be any outside shared files)
-- `npm run db:reset`, then run the ROADMAP §7 checklist end to end. File bugs in chat to the owner.
-- Make sure `npm run build && npm start` works too (more reliable for the demo than `dev`)
-
----
-
-## Below the cut line (only after Gate 2)
-
-- [ ] **Phone tunnel:** `npx cloudflared tunnel --url http://localhost:3000` (no account needed),
-  then set `NEXT_PUBLIC_APP_URL` to the tunnel URL and restart. Test the camera on a phone.
-- [ ] Landing page: hero with the one-line pitch, three steps (Report → Clean → Get paid), login and signup buttons
-- [ ] Shared empty and loading states, favicon, app title "CivicBounty"
-
----
-
-## Prompt to paste into your LLM
+## Prompt for your LLM (Claude Code reads CLAUDE.md → AGENTS.md automatically)
 
 ```
-You are helping me build the "foundation" lane of CivicBounty, a Next.js 16 + SQLite (Drizzle/libSQL)
-+ shadcn/ui hackathon app. Three people build in parallel and must never edit the same files.
-
-I have attached: AGENTS.md, docs/CONTRACTS.md, docs/lanes/carter-foundation.md.
-- CONTRACTS.md is the single source of truth for schema, types, exported function signatures,
-  API shapes, and file ownership. Match it exactly.
-- I own the shared/foundation files listed there. Do NOT create or edit anything under
-  app/citizen, app/gov, lib/citizen, lib/gov, lib/payments.ts, app/api/submissions,
-  app/api/hotspots, or app/api/payments, except creating the Phase 0 placeholder stubs.
-- Use Next.js 16 conventions: async params/searchParams/cookies(), proxy.ts instead of
-  middleware.ts, Tailwind v4 (no tailwind.config).
-- Never change an exported signature from CONTRACTS.md; other people's code depends on it.
-
-Current task: <paste the task section, e.g. "Task 2: Real authentication">.
-Give me complete file contents for each file you touch, with file paths, and a short manual
-test plan at the end.
+I'm Carter; I own the foundation lane of CivicBounty (see docs/lanes/carter-foundation.md).
+Task: <e.g. "3. Real camera viewfinder">. docs/CONTRACTS.md is binding: never change an exported
+signature, DB column or API shape without also updating CONTRACTS.md, and don't touch Rohan's
+or Luna's folders. Run typecheck, lint and build when done and list the files changed.
 ```

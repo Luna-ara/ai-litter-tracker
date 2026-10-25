@@ -19,7 +19,10 @@ here, ask for it. Don't invent it in your own lane.
 | Payments | `stripe` (Node SDK), **test mode only** | Checkout to fund bounties, Connect transfers to pay citizens |
 | Script runner | `tsx` | For `scripts/*.ts` (seed, reset) |
 | Package manager | **npm only** | Commit `package-lock.json`. Never add yarn or pnpm lockfiles |
-| Node | 22 LTS or newer | `.nvmrc` says 22 |
+| Node | 20.9 or newer (22 recommended) | `.nvmrc` says 22 |
+
+**Sandbox only.** `lib/payments.ts` refuses to start with anything but an `sk_test_` key. The app
+should *look* production-ready, but no real money ever moves.
 
 ### Next.js 16 rules (LLMs often get these wrong; older training data predates them)
 
@@ -36,6 +39,9 @@ here, ask for it. Don't invent it in your own lane.
 - Middleware is now **`proxy.ts`** at the repo root and exports `function proxy(req)`, not `middleware.ts`.
 - Components are Server Components by default. Add `"use client"` only for hooks, browser APIs or event handlers.
 - Tailwind v4: utility classes work as usual; `@import "tailwindcss";` is in `globals.css`. Don't create a Tailwind config file.
+- Use the global type helpers for props: `export default async function Page({ params }: PageProps<"/gov/review/[id]">)`.
+- `cacheComponents` is **off** in `next.config.ts`. Don't add `"use cache"`, `cacheLife` or `cacheTag`; pages that read cookies or the DB are simply rendered per request.
+- The repo's `AGENTS.md` starts with a block that Next.js itself writes, pointing at `node_modules/next/dist/docs/`. Those bundled docs match the installed version exactly, so check them when unsure.
 
 ---
 
@@ -45,9 +51,15 @@ here, ask for it. Don't invent it in your own lane.
 
 | Owner | Paths |
 | --- | --- |
-| **Carter** (foundation, auth, camera) | `package.json`, `package-lock.json`, `next.config.ts`, `tsconfig.json`, `proxy.ts`, `drizzle.config.ts`, `.env.example`, `.gitignore`, `db/**`, `drizzle/**`, `scripts/**`, `lib/auth.ts`, `lib/db.ts`, `lib/types.ts`, `lib/format.ts`, `lib/http.ts`, `lib/utils.ts`, `app/layout.tsx`, `app/globals.css`, `app/page.tsx`, `app/login/**`, `app/signup/**`, `app/dev/**`, `app/api/auth/**`, `app/api/uploads/**`, `components/ui/**`, `components/camera/**`, `components/nav.tsx`, `components/status-badge.tsx`, `docs/**`, `AGENTS.md`, `CLAUDE.md`, `README.md` |
+| **Carter** (foundation, auth, camera, Stripe) | Everything not listed below: config files, `db/**`, `drizzle/**`, `scripts/**`, `proxy.ts`, `lib/*.ts` (auth, session, db, types, http, format, utils, **payments**), `app/layout.tsx`, `app/globals.css`, `app/page.tsx`, `app/login/**`, `app/signup/**`, `app/dev/**`, `app/api/auth/**`, `app/api/uploads/**`, `components/*.tsx`, `components/ui/**`, `components/auth/**`, `components/camera/**`, `docs/**`, `AGENTS.md`, `CLAUDE.md`, `README.md` |
 | **Rohan** (citizen app) | `app/citizen/**`, `app/api/submissions/route.ts`, `lib/citizen/**`, `components/citizen/**`, `public/seed/**` |
-| **Luna** (government app + payments) | `app/gov/**`, `app/api/hotspots/**`, `app/api/submissions/[id]/**`, `app/api/payments/**`, `lib/gov/**`, `lib/payments.ts`, `components/gov/**` |
+| **Luna** (government app) | `app/gov/**`, `app/api/hotspots/**`, `app/api/submissions/[id]/**`, `app/api/payments/**`, `lib/gov/**`, `components/gov/**` |
+
+**Check yourself before every PR:** `npm run check:lane -- rohan` (or `luna`). It lists any changed
+file outside your lane and fails if there is one.
+
+Third-party services are all in Carter's lane. Rohan and Luna never need a Stripe account,
+API keys or any external setup; Luna's routes call the plain functions in `lib/payments.ts`.
 
 Notice that `app/api/submissions/route.ts` (Rohan) and `app/api/submissions/[id]/review/route.ts`
 (Luna) are different files, so there's no overlap.
@@ -64,13 +76,13 @@ about 15 minutes. Meanwhile, keep working with a local stand-in **inside your ow
 # Database
 DATABASE_URL=file:local.db
 
-# Auth: generate with `openssl rand -base64 32` (any long random string works)
-AUTH_SECRET=change-me-to-a-long-random-string
+# Auth: the dev default works locally. Production/demo machine: `openssl rand -base64 32`
+AUTH_SECRET=dev-only-secret-replace-me-0123456789abcdef
 
 # App URL, used for Stripe redirect URLs. Change it to the tunnel URL when demoing on a phone.
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
-# Stripe TEST keys. Luna shares these privately. Leave them blank to run in "simulated payments" mode.
+# Stripe SANDBOX keys (sk_test_/pk_test_). Carter shares them by DM. Blank = "simulated payments" mode.
 STRIPE_SECRET_KEY=
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 
@@ -78,8 +90,8 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 DEMO_CITIZEN_STRIPE_ACCOUNT_ID=
 ```
 
-Every feature must still **work with the Stripe keys blank** (payments fall back to "simulated").
-That way Carter and Rohan never need Stripe set up to test their lanes.
+Everything works with the Stripe keys blank (payments fall back to "simulated"), so **Rohan and
+Luna can leave them empty**. Only the demo machine needs real sandbox keys.
 
 ---
 
@@ -189,7 +201,7 @@ export type Payout = typeof payouts.$inferSelect;
 export type SessionUser = { id: string; email: string; name: string; role: Role };
 ```
 
-### `lib/auth.ts`
+### `lib/auth.ts` (real JWT auth; already built)
 ```ts
 /** Current user from the cb_session cookie, or null. Server components and route handlers. */
 export async function getCurrentUser(): Promise<SessionUser | null>;
@@ -203,9 +215,32 @@ export async function apiUser(role?: Role): Promise<SessionUser | Response>;
 //   const user = await apiUser("government");
 //   if (user instanceof Response) return user;
 ```
-Phase 0 ships a **stub**: the cookie holds a plain user ID, set by the `/dev/login-as` page.
-Carter then swaps the stub for real JWTs **without changing these signatures**, so nobody else's
-code changes.
+`proxy.ts` already redirects logged-out users to `/login` and wrong-role users to their own home
+for every `/citizen/*` and `/gov/*` path. Still call `requireUser(role)` at the top of every page
+(it also gives you the user).
+
+### `lib/payments.ts` (Carter; sandbox Stripe with a simulated fallback; already built)
+```ts
+export const paymentsMode: "stripe" | "simulated";
+
+/** Start a payment that funds a bounty. Send the browser to `url`. Never throws on Stripe errors. */
+export async function createBountyCheckout(input: {
+  hotspotId: string; title: string; amountCents: number;
+}): Promise<{ url: string; sessionId: string }>;
+// Stripe returns the browser to /gov/hotspots/<id>?session_id=<id>  (or ?canceled=1)
+
+/** True when that checkout session was paid for that hotspot ("sim_…" sessions are always paid). */
+export async function verifyBountyCheckout(sessionId: string, hotspotId: string): Promise<boolean>;
+
+/** Transfer a bounty to a citizen's Connect account. NEVER throws; falls back to "simulated". */
+export async function sendBountyPayout(input: {
+  amountCents: number; stripeAccountId: string | null; submissionId: string; hotspotId: string;
+}): Promise<{ status: "sent" | "simulated"; transferId: string | null }>;
+
+export function transferDashboardUrl(transferId: string): string;
+```
+These functions **only talk to Stripe**. They don't read or write the database; the caller
+(Luna's routes) saves `checkoutSessionId`, statuses and `payouts` rows.
 
 ### `lib/http.ts`
 ```ts
@@ -234,9 +269,12 @@ type CameraCaptureProps = {
 };
 export function CameraCapture(props: CameraCaptureProps): JSX.Element;
 ```
-Until the real camera lands, Phase 0 ships a version with the same props that renders a plain
-`<input type="file" accept="image/*">` and uploads it. **Rohan builds against this from minute
-one.**
+v1 (already built) opens the phone's native camera through a file input and uploads the photo.
+Carter later swaps the inside for a live viewfinder. **The props never change**, so Rohan and Luna
+just use it.
+
+### `components/page-placeholder.tsx`
+The "being built" card that every stub page renders. Replace the whole page body when you build it.
 
 ### `components/nav.tsx`
 Already holds every link the app will ever need, chosen by role:
@@ -246,7 +284,8 @@ Already holds every link the app will ever need, chosen by role:
 
 ### shadcn components installed in Phase 0
 `button card input label textarea select badge dialog tabs table sonner avatar skeleton separator alert progress dropdown-menu`.
-Import them like `import { Button } from "@/components/ui/button"`. Toasts:
+Import them like `import { Button } from "@/components/ui/button"`. Links styled as buttons:
+`<Button asChild><Link href="…">…</Link></Button>`. Toasts:
 `import { toast } from "sonner"` (the `<Toaster />` is already in the root layout).
 
 ---
@@ -290,7 +329,6 @@ Every request and response body is JSON unless noted. Errors are always `{ "erro
 | `POST /api/hotspots` | Luna | government | `{ title, neighborhood, description?, lat, lng, radiusM?, severity, bountyCents, beforeImageUrl? }` | `201 { hotspot }` (status `unfunded`) |
 | `POST /api/payments/checkout` | Luna | government | `{ hotspotId }` | `200 { url }`: redirect the browser to it |
 | `POST /api/payments/confirm` | Luna | government | `{ sessionId, hotspotId }` | `200 { hotspot }` (now `open`); safe to call twice |
-| `POST /api/payments/connect` | Luna | citizen | none | `200 { url }`: Stripe Connect onboarding link. *Below the cut line* |
 | `POST /api/submissions` | Rohan | citizen | `{ hotspotId, beforeUrl, afterUrl, location: { lat, lng, accuracy } }` | `201 { submission }` |
 | `PATCH /api/submissions/[id]/review` | Luna | government | `{ action: "approve" \| "flag", note?: string }` | `200 { submission, payout? }` |
 
@@ -333,3 +371,20 @@ UI shows a placeholder.
 - UI: shadcn components, `lucide-react` icons, mobile-first layouts (`max-w-md mx-auto` for citizen screens; the citizen flow is demoed on a phone).
 - Use toasts (`sonner`) for success and error feedback. No `alert()`.
 - No new dependencies without a `CONTRACT CHANGE`.
+
+---
+
+## 9. Quality bar ("looks production-ready")
+
+Judges see this live, so every page you ship should have:
+
+- A real page title: `export const metadata = { title: "Review queue" }` (the layout adds "· CivicBounty")
+- A heading, plus one line of helper text, at the top of the page
+- **Empty states** (an icon, a sentence, an action where it makes sense), never a blank area
+- **Loading states:** buttons disable and show `<Loader2 className="size-4 animate-spin" />` while a request runs
+- **Error handling:** every `fetch` checks `res.ok` and shows `toast.error(data.error)`
+- Responsive layout at a 375 px phone width and on a laptop
+- No console errors or React key warnings
+- Consistent spacing: page container `mx-auto max-w-6xl px-4 py-8` (gov) or `mx-auto max-w-md px-4 py-6` (citizen)
+- Images: plain `<img>` with `className="object-cover"` (uploads are dynamic). Add
+  `{/* eslint-disable-next-line @next/next/no-img-element */}` above each one.
