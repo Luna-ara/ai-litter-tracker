@@ -36,6 +36,26 @@ app causes HTTP 500s.)
 placeholder, and names the owner and task for each failure. If a lane is missing by 7:45,
 **cut that scene from the script** (§4 notes what to skip) rather than writing it at 8 AM.
 
+## 2a. Citizen side: Rohan's PRs or the fallback (decide by 7:30)
+
+Luna's government app (Tasks 1–6) is **already on `main`**, tested against real Stripe sandbox.
+Rohan's citizen app wasn't pushed overnight, so a complete fallback of his lane, built from his
+runbook (same files, same screens), is waiting as **draft PR #6** (`carter/citizen-fallback`).
+With it, the full demo was rehearsed end to end in a browser, including a real $25 Stripe transfer.
+
+1. **By 7:00:** Rohan pushes everything he has and opens PRs (his kickoff line does it).
+2. **7:00–7:20, Carter:** merge Rohan's branches into a scratch branch on top of `main`, start the
+   app, run `npm run verify:demo`.
+3. **7:30 decision:**
+   - **Rohan's version is green** (citizen steps and pages pass): merge his PRs and close #6. He
+     presents what he built.
+   - **Red, partial, or nothing pushed by 7:15:** mark #6 ready, merge it, and close Rohan's PRs
+     (keep the branches for after the demo). Don't mix files from the two versions; they share
+     `lib/citizen/queries.ts`, and mixing invites 7:45 surprises.
+4. Either way the demo script (§4) is identical, so Rohan rehearses the same flow.
+5. **Seed photos** (Rohan's Task 0) are only cosmetic: cards show a placeholder icon without them.
+   If they're missing at 7:30, drop four JPEGs into `public/seed/hotspot-1..4.jpg`.
+
 ## 3. Demo machine setup (Rohan's laptop)
 
 > **Rohan:** paste this into Codex: `I'm Rohan. Follow docs/DEMO.md §3 to set up this laptop as
@@ -71,6 +91,12 @@ placeholder, and names the owner and task for each failure. If a lane is missing
 8. Pre-fund one hotspot so the story starts with something live: as city staff, open the unfunded
    "Litter along the playground fence" hotspot → **Fund bounty** → card `4000 0000 0000 0077`,
    any future date, any CVC.
+
+**Stripe Checkout gotchas (learned in rehearsal):**
+- Click **Card** first; the card fields are hidden until you do.
+- **Untick "Save my information with Link"**, or Checkout demands a phone number and Pay won't go through.
+- The account name shown on Checkout comes from Stripe → Settings → Business → Public details. Set it to "CivicBounty".
+- Payouts draw from the sandbox platform balance (about $195 after tonight, enough for ~7 payouts). Top it up with a `4000 0000 0000 0077` payment if `verify:demo` shows `payout simulated`.
 
 **If the tunnel or the phone fails:** do the citizen side in a laptop browser at
 `http://localhost:3000`. The camera works on localhost, or use "Upload instead".
