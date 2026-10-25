@@ -10,8 +10,12 @@ something on the demo path.
 | Government side | **Rohan** (Luna can help if she's there) | Normal Chrome window on Rohan's laptop (city staff) |
 | On call | **Carter** | Group chat until the demo ends |
 
-**Rohan's setup instructions: [`rohan-demo-day.md`](./rohan-demo-day.md)** (save his work to
-`rohan/my-work`, fresh clone, `.env.local`, `npm run demo:preflight`, build, start).
+**Rohan's setup instructions: [`rohan-demo-day.md`](./rohan-demo-day.md)** (fresh clone, `.env.local`,
+`npm run demo:preflight`, build, start, then the whole demo solo).
+
+The citizen side on `main` is **Rohan's own code** (PR #10, merged 1:04 AM), re-verified after
+merging: 20/20 API checks with a real payout, plus the full browser rehearsal with zero console errors.
+**Nobody merges anything else into `main` before the demo.**
 
 ## 1. Morning timeline
 
@@ -76,5 +80,5 @@ The laptop-only setup above is the safe default.
 
 - `npm run verify:demo` checks the whole demo path against a running app (stop the app,
   `npm run db:reset`, start it, then run the check; it leaves test data behind).
-- Rohan's own work lands on `rohan/my-work` as his contribution. It is **not** merged before the
-  demo. Review it together afterwards.
+- `main` is frozen until after the demo. If a fix is truly needed, open a PR and run
+  `npm run verify:demo` before merging.
