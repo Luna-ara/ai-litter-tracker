@@ -7,7 +7,7 @@ something on the demo path.
 | Role | Who | Where |
 | --- | --- | --- |
 | **Presenter**, citizen side | **Rohan** | Rohan's laptop runs the app. Citizen in an **incognito** Chrome window |
-| Government side | **Luna** | Normal Chrome window on Rohan's laptop (city staff) |
+| Government side | **Rohan** (Luna can help if she's there) | Normal Chrome window on Rohan's laptop (city staff) |
 | On call | **Carter** | Group chat until the demo ends |
 
 **Rohan's setup instructions: [`rohan-demo-day.md`](./rohan-demo-day.md)** (save his work to
